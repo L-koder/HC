@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Advocate Records</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f4f4f4;
+    }
+
+    .container {
+        max-width: 800px;
+        margin: 20px auto;
+        padding: 20px;
+        background-color: #fff;
+        border-radius: 5px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+        text-align: center;
+    }
+
+    form {
+        margin-bottom: 20px;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 5px;
+    }
+
+    input[type="text"],
+    input[type="number"] {
+        width: 100%;
+        padding: 8px;
+        margin-bottom: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box;
+    }
+
+    input[type="submit"],
+    input[type="button"] {
+        width: 100%;
+        background-color: #4caf50;
+        color: #fff;
+        padding: 10px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    input[type="submit"]:hover,
+    input[type="button"]:hover {
+        background-color: #45a049;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    th, td {
+        padding: 8px;
+        border-bottom: 1px solid #ddd;
+        text-align: left;
+    }
+
+    .toggle-btn {
+        cursor: pointer;
+    }
+
+    .hidden-advocate {
+        display: none;
+    }
+</style>
+</head>
+<body>
+<div class="container">
+    <h1>Advocate Records</h1>
+    <form id="recordForm" onsubmit="addEntry(event)">
+        <label for="advocateName">Advocate Name:</label>
+        <input type="text" id="advocateName" list="advocateSuggestions" required>
+        <datalist id="advocateSuggestions"></datalist>
+
+        <label for="amount">Amount (in Rs.):</label>
+        <input type="number" id="amount" min="500" required>
+
+        <label for="pageNo">Page Number:</label>
+        <input type="text" id="pageNo" required>
+
+        <label for="receiptUIN">Receipt UIN:</label>
+        <input type="text" id="receiptUIN" required>
+
+        <label for="litigantName">Litigant Name:</label>
+        <input type="text" id="litigantName" required>
+
+        <input type="submit" value="Add Entry">
+    </form>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Advocate Name</th>
+                <th>Amount</th>
+                <th>Page Number</th>
+                <th>Receipt UIN</th>
+                <th>Litigant Name</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody id="recordsBody"></tbody>
+    </table>
+
+    <button onclick="exportData()">Export Data</button>
+</div>
+
+<script>
+    let advocateEntries = {};
+
+    function addEntry(event) {
+        event.preventDefault();
+
+        const advocateName = document.getElementById('advocateName').value.trim();
+        const amount = document.getElementById('amount').value.trim();
+        const pageNo = document.getElementById('pageNo').value.trim().toUpperCase();
+        const receiptUIN = document.getElementById('receiptUIN').value.trim();
+        const litigantName = document.getElementById('litigantName').value.trim();
+
+        if (!advocateName || !amount || !pageNo || !receiptUIN || !litigantName) {
+            alert('Please fill out all fields.');
+            return;
+        }
+
+        if (amount < 500) {
+            alert('Minimum amount should be 500 Rs.');
+            return;
+        }
+
+        const newEntry = {
+            advocateName: advocateName,
+            amount: '₹' + amount,
+            pageNo: pageNo,
+            receiptUIN: receiptUIN,
+            litigantName: litigantName
+        };
+
+        if (!advocateEntries[advocateName]) {
+            advocateEntries[advocateName] = [];
+        }
+
+        advocateEntries[advocateName].push(newEntry);
+
+        displayRecords();
+        clearInputFields();
+        updateAdvocateSuggestions();
+    }
+
+    function deleteEntry(advocate, index) {
+        advocateEntries[advocate].splice(index, 1);
+        displayRecords();
+    }
+
+    function displayRecords() {
+        const recordsBody = document.getElementById('recordsBody');
+        recordsBody.innerHTML = '';
+
+        for (const advocate in advocateEntries) {
+            const advocateEntriesCount = advocateEntries[advocate].length;
+
+            advocateEntries[advocate].forEach((entry, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${entry.advocateName}</td>
+                    <td>${entry.amount}</td>
+                    <td>${entry.pageNo}</td>
+                    <td>${entry.receiptUIN}</td>
+                    <td>${entry.litigantName}</td>
+                    <td>
+                        <button onclick="deleteEntry('${advocate}', ${index})">Delete</button>
+                    </td>
+                `;
+                recordsBody.appendChild(row);
+            });
+        }
+    }
+
+    function exportData() {
+        let exportContent = '';
+
+        for (const advocate in advocateEntries) {
+            exportContent += `${advocate}:\n`;
+            advocateEntries[advocate].forEach(entry => {
+                exportContent += `  Advocate Name: ${entry.advocateName}\n`;
+                exportContent += `  Amount: ${entry.amount}\n`;
+                exportContent += `  Page Number: ${entry.pageNo}\n`;
+                exportContent += `  Receipt UIN: ${entry.receiptUIN}\n`;
+                exportContent += `  Litigant Name: ${entry.litigantName}\n\n`;
+            });
+        }
+
+        const blob = new Blob([exportContent], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'advocate_records.txt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    function clearInputFields() {
+        document.getElementById('advocateName').value = '';
+        document.getElementById('amount').value = '';
+        document.getElementById('pageNo').value = '';
+        document.getElementById('receiptUIN').value = '';
+        document.getElementById('litigantName').value = '';
+    }
+
+    function suggestAdvocateNames(input) {
+        const existingAdvocates = Object.keys(advocateEntries);
+        return existingAdvocates.filter(advocate =>
+            advocate.toLowerCase().startsWith(input.toLowerCase())
+        );
+    }
+
+    function updateAdvocateSuggestions() {
+        const inputValue = document.getElementById('advocateName').value;
+        const suggestions = suggestAdvocateNames(inputValue);
+
+        const dataList = document.getElementById('advocateSuggestions');
+        dataList.innerHTML = '';
+
+        suggestions.forEach(suggestion => {
+            const option = document.createElement('option');
+            option.value = suggestion;
+            dataList.appendChild(option);
+        });
+    }
+</script>
+</body>
+</html>
